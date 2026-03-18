@@ -21,6 +21,11 @@ int mapajuluz=0;
 int leerajuhum=0;
 int mapajuhum=0;
 
+//Velocidad del motor
+
+int velocidad=0;
+int revoluciones=0;
+
 
 
 //valores para sensor de Ultrasonido 
@@ -46,12 +51,16 @@ int x=0;
 //Pines Analogicos 
 #define valorLDR A0
 #define sensorHum A1
-#define ajuste_luz A2
-#define ajuste_hum A3
+#define ajuste_vel A2
+
 //Pines de Led RGB Usando Pines PWM
 #define RED_PIN 2
 #define GREEN_PIN 3
 #define BLUE_PIN 4
+
+//Motor 
+#define Motor_PIN 8
+
 //Pines Digitales para el Modulo Relay y Botones
 #define DHTPIN 36
 #define BUTTON_PIN 34
@@ -68,6 +77,47 @@ int x=0;
 //Constantes para calcular la Distancia 
 #define SOUND_SPEED 0.034 
 #define CM_TO_INCH 0.393701
+
+// Use an enum for animation indexes to avoid "magic numbers"
+enum Animation {
+  WAKEUP,
+  RESET,
+  MOVE_RIGHT_BIG,
+  MOVE_LEFT_BIG,
+  BLINK_LONG,
+  BLINK_SHORT,
+  HAPPY,
+  SLEEP,
+  SACCADE_RANDOM,
+  MAX_ANIMATIONS // Helper to get the count of animations
+};
+
+// states for demo 
+int demo_mode = 1;
+int current_animation_index = 0;
+
+// --- Structs for better state management ---
+
+// Structure to hold the reference state of the eyes
+struct EyeState {
+  int height;
+  int width;
+  int x;
+  int y;
+};
+
+#define REF_EYE_HEIGHT  25
+#define REF_EYE_WIDTH  25
+#define REF_SPACE_BETWEEN_EYE  15
+#define REF_CORNER_RADIUS  10
+
+// Current state of the eyes
+EyeState left_eye, right_eye;
+int corner_radius = REF_CORNER_RADIUS;
+
+
+
+
 
 
 // Define the number of steps per revolution
@@ -117,4 +167,5 @@ const char* const quotes[] PROGMEM = {
 };
 const uint8_t quoteCount = sizeof(quotes) / sizeof(quotes[0]);
 #endif
+
 
