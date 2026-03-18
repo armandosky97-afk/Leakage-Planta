@@ -77,6 +77,26 @@ inline void g_update_display() {
 }
 
 
+inline void g_draw_filled_round_rect(int x, int y, int w, int h, int r, int color) {
+
+#if defined(USE_U8G2)
+    display.setDrawColor(color);
+    display.drawRBox(x, y, w, h, r);
+#elif defined(USE_ADAFRUIT_SSD1306)
+    display.fillRoundRect(x, y, w, h, r, color);
+#endif
+
+}
+
+inline void g_draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, int color) {
+#if defined(USE_U8G2)
+    display.setDrawColor(color);
+    display.drawTriangle(x0, y0, x1, y1, x2, y2);
+#elif defined(USE_ADAFRUIT_SSD1306)
+    display.fillTriangle(x0, y0, x1, y1, x2, y2, color);
+    
+#endif
+}
 
 
 
