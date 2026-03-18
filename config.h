@@ -4,7 +4,7 @@
 // --- LIBRARY SELECTION ---
 // Uncomment ONLY ONE of the following lines to choose your display driver.
 
-#define USE_U8G2
+//#define USE_U8G2
 #define USE_ADAFRUIT_SSD1306
 
 //Dimensiones de la pantalla
