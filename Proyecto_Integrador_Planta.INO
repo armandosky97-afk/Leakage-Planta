@@ -1,22 +1,20 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <DHT.h>
+#include "DHT.h"
 #include <avr/wdt.h>
 #include "pitches.h"
 #include "constantes.h"
 #include "display_wrapper.h"
 #include "audios.h"
 #include <Stepper.h>
-#include "imagenes.h"		
+#include "imagenes.h"
 #include <LowPower.h>// https://github.com/rocketscream/Low-Power
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <qrcode.h>
+#include <RTClib.h>  // Include libraries
 
-
-
-// Device instances
-//U8G2_SSD1306_128X64_NONAME_1_HW_I2C oled(U8G2_R0);
 //Crear Objeto del Sensor DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -26,11 +24,7 @@ Stepper myStepper(stepsPerRevolution, 8, 10, 9, 11);
 
 
 
-
-
-
-
-
+RTC_DS1307 rtc;
 
 void setup() 
 {
@@ -52,7 +46,9 @@ void setup()
   pinMode(botonencender,INPUT_PULLUP);//Boton de Encendido
   //goToSleep();
   
-  // Initialize devices
+  // Iniciar dispositivos 
+  digitalWrite(pinRELAY, HIGH);
+  digitalWrite(Bombapin, HIGH); 
   Wire.begin();
   g_init_display();
   //oled.begin();
@@ -62,9 +58,14 @@ void setup()
 
   displayMessage("Iniciando.....");
   delay(5000);
+  displayMultilineText("Proyecto Integrador Proyecto Leakage de Planta");
+  delay(5000);
   mostrarlaptop();
 
-
+  // Display the QR code for "Marios Id"
+  generateQRCode("https://www.youtube.com/watch?v=0kJdWJXxF3Y");
+  delay(30000);
+  display.invertDisplay(0);
 
 
   sleep();
@@ -427,10 +428,6 @@ void encenderlapara()
 
 
     void mostrardatosenoled(){
-  
- 
-  
-
   /*
   // Verify sensor readings
   if (isnan(humidity) || isnan(temperature)) {
@@ -573,6 +570,34 @@ void displayMessage(String msg) {
   display.display();
 }
 
+
+
+void displayMultilineText(String text) {
+  int16_t x1;
+  int16_t y1;
+  uint16_t width;
+  uint16_t height;
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.getTextBounds(text, 0, 0, &x1, &y1, &width, &height);
+  display.setCursor((SCREEN_WIDTH - width) / 2, (SCREEN_HEIGHT - height) / 2);
+
+  int maxCharsPerLine = 21;
+  int lineHeight = 10;
+  int y = 0;
+
+  while (text.length() > 0 && y < SCREEN_HEIGHT) {
+    String line = text.substring(0, maxCharsPerLine);
+    text = text.substring(min((unsigned int)maxCharsPerLine, text.length()));
+    display.setCursor((SCREEN_WIDTH - width) / 2, ((SCREEN_HEIGHT - height) / 2)+y);
+    display.println(line);
+    y += lineHeight;
+  }
+
+  display.display();
+}
+
 void mostrartemperatura()
 {
       // Reset the hardware watchdog
@@ -634,21 +659,40 @@ void mostrartemperatura()
 
 
 
-    // Check both buttons
+
+
+
+
+  display.clearDisplay();  // Refresh display
+  display.setCursor(0, 0);
+
+    // Revisas estado de ambos botones
   bool unitChanged = checkButton();
   checkLedButton();
-  
-  
-   
+    if (trendSymbol == 1) {
+      // Up arrow
+      snprintf(buffer, sizeof(buffer), "Temp: %s %c %c", tempStr, displayInCelsius ? 'C' : 'F', 24); // ASCII 24 is ?
+    
 
-    display.clearDisplay();  // Refresh display
-    display.setCursor(0, 0);
 
+
+    } else if (trendSymbol == 2) {
+      // Down arrow
+      snprintf(buffer, sizeof(buffer), "Temp: %s %c %c", tempStr, displayInCelsius ? 'C' : 'F', 25); // ASCII 25 is ?
+  
+
+    } else {
+      // No trend indicator
+      snprintf(buffer, sizeof(buffer), "Temp: %s %c", tempStr, displayInCelsius ? 'C' : 'F');
+    
+    }
+    
     display.print(F("Tempertura: "));  // Temperature
     display.print(displayTemp, 1);
     display.println(F("oC"));
     display.drawRect(0, 10, 127, 5, WHITE); // A bar that shows the temprature. Range: 0-40oC
-    display.fillRect(0, 10, (displayTemp / 40.0) * 127, 5, WHITE);
+    display.fillRect(0, 10, (displayTemp / 100.0) * 127, 5, WHITE);
+    
 
     display.print(F("\nHumedad Aire: "));  // Humidity
     display.print(humidity, 1);
@@ -1004,6 +1048,48 @@ void launch_animation_with_index(int animation_index)
           
       }
 }
+
+
+
+
+
+void generateQRCode(const char* text) {
+  // Create a QR code object
+  QRCode qrcode;
+  
+  // Define the size of the QR code (1-40, higher means bigger size)
+  uint8_t qrcodeData[qrcode_getBufferSize(3)];
+  qrcode_initText(&qrcode, qrcodeData, 3, 0, text);
+
+  // Clear the display
+  display.clearDisplay();
+
+  // Calculate the scale factor
+  int scale = min(SCREEN_WIDTH / qrcode.size, SCREEN_HEIGHT / qrcode.size);
+  
+  // Calculate horizontal shift
+  int shiftX = (SCREEN_WIDTH - qrcode.size*scale)/2;
+  
+  // Calculate horizontal shift
+  int shiftY = (SCREEN_HEIGHT - qrcode.size*scale)/2;
+
+  // Draw the QR code on the display
+  for (uint8_t y = 0; y < qrcode.size; y++) {
+    for (uint8_t x = 0; x < qrcode.size; x++) {
+      if (qrcode_getModule(&qrcode, x, y)) {
+        display.fillRect(shiftX+x * scale, shiftY + y*scale, scale, scale, WHITE);
+      }
+    }
+  }
+
+  // Update the display
+  display.display();
+  display.invertDisplay(1);
+  
+}
+
+
+
 
 
 
